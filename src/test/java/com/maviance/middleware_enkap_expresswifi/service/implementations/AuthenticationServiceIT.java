@@ -6,14 +6,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 @ExtendWith(SpringExtension.class)
 @TestPropertySource(properties = {"enkap.generation.token=MGVsSkZEdU5ZMmxhVlRNZ1hqVzR6UHpYYmVFYTpZYWFKOEdpRHpoSHBlaksyV04wTWp1N2VFREVh"})
@@ -32,7 +31,7 @@ class AuthenticationServiceIT {
     }
 
     @Configuration
-    @ComponentScan(basePackageClasses = {AuthenticationServiceImpl.class,})
+    @Import(AuthenticationServiceImpl.class)
     static class config {
     }
 

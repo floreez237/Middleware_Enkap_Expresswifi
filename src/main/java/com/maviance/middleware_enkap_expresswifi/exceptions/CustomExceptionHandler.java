@@ -1,7 +1,7 @@
 package com.maviance.middleware_enkap_expresswifi.exceptions;
 
 
-import com.maviance.middleware_enkap_expresswifi.enums.ExpessWifiStatus;
+import com.maviance.middleware_enkap_expresswifi.enums.ExpressWifiStatus;
 import com.maviance.middleware_enkap_expresswifi.model.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
@@ -40,7 +40,7 @@ public class CustomExceptionHandler {
                     "Invalid Method Argument", 106, "fbgenexception");
         }
         ErrorResponse response = new ErrorResponse(errorObject);
-        response.setExpessWifiStatus(ExpessWifiStatus.FAILURE);
+        response.setExpressWifiStatus(ExpressWifiStatus.FAILURE);
         return response;
     }
 
@@ -55,7 +55,7 @@ public class CustomExceptionHandler {
     public ErrorResponse handleUnpredictedException(Exception exception) {
         ErrorResponse.ErrorObject errorObject = new ErrorResponse.ErrorObject(exception.getMessage(), "Internal Server Error", 500, "fbunpredicted");
         ErrorResponse response = new ErrorResponse(errorObject);
-        response.setExpessWifiStatus(ExpessWifiStatus.FAILURE);
+        response.setExpressWifiStatus(ExpressWifiStatus.FAILURE);
         return response;
     }
 

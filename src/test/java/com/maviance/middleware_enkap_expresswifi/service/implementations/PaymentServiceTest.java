@@ -1,37 +1,48 @@
 package com.maviance.middleware_enkap_expresswifi.service.implementations;
 
-import com.maviance.middleware_enkap_expresswifi.enums.ExpessWifiStatus;
+import com.maviance.middleware_enkap_expresswifi.enums.ExpressWifiStatus;
 import com.maviance.middleware_enkap_expresswifi.enums.RequestSource;
 import com.maviance.middleware_enkap_expresswifi.exceptions.ExpressWifiException;
 import com.maviance.middleware_enkap_expresswifi.model.request.ExpressWifiPaymentRequest;
 import com.maviance.middleware_enkap_expresswifi.model.request.ExpressWifiStatusRequest;
+import com.maviance.middleware_enkap_expresswifi.model.request.MiddleWareRequestEntity;
 import com.maviance.middleware_enkap_expresswifi.model.response.ENkapOrderResponse;
 import com.maviance.middleware_enkap_expresswifi.model.response.RedirectResponse;
 import com.maviance.middleware_enkap_expresswifi.model.response.StatusResponse;
+import com.maviance.middleware_enkap_expresswifi.repositories.RequestRepository;
 import com.maviance.middleware_enkap_expresswifi.service.interfaces.PaymentService;
 import com.maviance.middleware_enkap_expresswifi.utils.JsonMapper;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.client.AutoConfigureWebClient;
 import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.match.MockRestRequestMatchers;
-import org.springframework.test.web.client.response.MockRestResponseCreators;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 //@ExtendWith(SpringExtension.class)
-@TestPropertySource(locations = {"classpath:application.properties"})
+@TestPropertySource(locations = {"classpath:application-test.properties"})
 @RestClientTest(PaymentServiceImpl.class)
 @AutoConfigureWebClient(registerRestTemplate = true)//this is because I have Restemplate as an autowired bean from a Config Class
+@ActiveProfiles("dev")
 class PaymentServiceTest {
 
     @Value("${enkap.order.url}")
@@ -42,6 +53,10 @@ class PaymentServiceTest {
 
     @Value("${enkap.status.url}")
     private String eNkapStatusUrl;
+
+    @MockBean
+    RequestRepository requestRepository;
+
     @Autowired
     PaymentService paymentService;
 
@@ -89,7 +104,7 @@ class PaymentServiceTest {
 
         RedirectResponse redirectResponse = paymentService.requestENkapPayment(paymentRequest);
 
-        assertEquals(ExpessWifiStatus.SUCCESS, redirectResponse.getExpessWifiStatus());
+        assertEquals(ExpressWifiStatus.SUCCESS, redirectResponse.getExpressWifiStatus());
         assertEquals("https://www.enkap.com", redirectResponse.getRedirectUrl());
     }
 
@@ -112,7 +127,7 @@ class PaymentServiceTest {
         ExpressWifiException exception = assertThrows(ExpressWifiException.class, () -> {
             paymentService.requestENkapPayment(paymentRequest);
         });
-        assertEquals(ExpessWifiStatus.FAILURE, exception.getErrorResponse().getExpessWifiStatus());
+        assertEquals(ExpressWifiStatus.FAILURE, exception.getErrorResponse().getExpressWifiStatus());
         assertEquals(105, exception.getErrorResponse().getError().getCode());
 
     }
@@ -135,7 +150,7 @@ class PaymentServiceTest {
         ExpressWifiException exception = assertThrows(ExpressWifiException.class, () -> {
             paymentService.requestENkapPayment(paymentRequest);
         });
-        assertEquals(ExpessWifiStatus.FAILURE, exception.getErrorResponse().getExpessWifiStatus());
+        assertEquals(ExpressWifiStatus.FAILURE, exception.getErrorResponse().getExpressWifiStatus());
         assertEquals(500, exception.getErrorResponse().getError().getCode());
     }
 
@@ -156,7 +171,7 @@ class PaymentServiceTest {
         ExpressWifiException exception = assertThrows(ExpressWifiException.class, () -> {
             paymentService.requestENkapPayment(paymentRequest);
         });
-        assertEquals(ExpessWifiStatus.FAILURE, exception.getErrorResponse().getExpessWifiStatus());
+        assertEquals(ExpressWifiStatus.FAILURE, exception.getErrorResponse().getExpressWifiStatus());
         assertEquals(500, exception.getErrorResponse().getError().getCode());
     }
 
@@ -167,7 +182,7 @@ class PaymentServiceTest {
         ExpressWifiException exception = assertThrows(ExpressWifiException.class, () -> {
             paymentService.requestENkapPayment(paymentRequest);
         });
-        assertEquals(ExpessWifiStatus.FAILURE, exception.getErrorResponse().getExpessWifiStatus());
+        assertEquals(ExpressWifiStatus.FAILURE, exception.getErrorResponse().getExpressWifiStatus());
         assertEquals(102, exception.getErrorResponse().getError().getCode());
     }
 
@@ -178,11 +193,12 @@ class PaymentServiceTest {
 
         //mock enkap status request
         mockRestServiceServer.expect(MockRestRequestMatchers.requestTo(eNkapStatusUrl.concat("?orderMerchantId=").concat(paymentRequest.getPaymentId())))
-                .andRespond(withSuccess(enkapStatusResponse,MediaType.APPLICATION_JSON));
-
+                .andRespond(withSuccess(enkapStatusResponse, MediaType.APPLICATION_JSON));
+        Mockito.when(requestRepository.findById(ArgumentMatchers.anyString())).thenReturn(Optional.of(new MiddleWareRequestEntity()));
         StatusResponse statusResponse = paymentService.requestStatusFromENkap(statusRequest);
 
-        assertEquals(ExpessWifiStatus.SUCCESS, statusResponse.getStatus());
+        assertEquals(ExpressWifiStatus.SUCCESS, statusResponse.getStatus());
+        Mockito.verify(requestRepository).save(ArgumentMatchers.any(MiddleWareRequestEntity.class));
     }
 
     @Test
@@ -196,7 +212,7 @@ class PaymentServiceTest {
         });
 
         assertEquals(500, expressWifiException.getErrorResponse().getError().getCode());
-        assertEquals(ExpessWifiStatus.FAILURE, expressWifiException.getErrorResponse().getExpessWifiStatus());
+        assertEquals(ExpressWifiStatus.FAILURE, expressWifiException.getErrorResponse().getExpressWifiStatus());
     }
 
     @Test
@@ -210,7 +226,7 @@ class PaymentServiceTest {
         });
 
         assertEquals(105, expressWifiException.getErrorResponse().getError().getCode());
-        assertEquals(ExpessWifiStatus.FAILURE, expressWifiException.getErrorResponse().getExpessWifiStatus());
+        assertEquals(ExpressWifiStatus.FAILURE, expressWifiException.getErrorResponse().getExpressWifiStatus());
     }
 
 
