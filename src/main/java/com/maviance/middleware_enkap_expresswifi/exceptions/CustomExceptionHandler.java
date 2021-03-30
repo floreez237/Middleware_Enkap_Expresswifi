@@ -3,26 +3,13 @@ package com.maviance.middleware_enkap_expresswifi.exceptions;
 
 import com.maviance.middleware_enkap_expresswifi.enums.ExpessWifiStatus;
 import com.maviance.middleware_enkap_expresswifi.model.response.ErrorResponse;
-import com.maviance.middleware_enkap_expresswifi.utils.JsonMapper;
-import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.client.HttpClientErrorException;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.sql.Time;
-import java.time.Instant;
-import java.util.Date;
 
 @ControllerAdvice
 @ResponseBody
@@ -57,7 +44,11 @@ public class CustomExceptionHandler {
         return response;
     }
 
-
+    @ExceptionHandler(ParameterNotFoundException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public String handleParameterNotFound() {
+        return "An Error has occurred";
+    }
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus
