@@ -16,6 +16,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.HttpClientErrorException;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Time;
 import java.time.Instant;
 import java.util.Date;
@@ -54,10 +58,11 @@ public class CustomExceptionHandler {
     }
 
 
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus
     public ErrorResponse handleUnpredictedException(Exception exception) {
-        ErrorResponse.ErrorObject errorObject = new ErrorResponse.ErrorObject(exception.getMessage(), "Runtime Exception", 500, "fbunpredicted");
+        ErrorResponse.ErrorObject errorObject = new ErrorResponse.ErrorObject(exception.getMessage(), "Internal Server Error", 500, "fbunpredicted");
         ErrorResponse response = new ErrorResponse(errorObject);
         response.setExpessWifiStatus(ExpessWifiStatus.FAILURE);
         return response;

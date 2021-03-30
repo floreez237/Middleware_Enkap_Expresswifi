@@ -55,7 +55,7 @@ class PaymentControllerTest {
     @DisplayName("Test status request with Invalid Body")
     void getStatusWithInvalidBody() throws Exception {
         ExpressWifiStatusRequest statusRequest = new ExpressWifiStatusRequest("", "sds", "asa", 454545545L);
-        mockMvc.perform(post("v1/status").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/v1/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonMapper.objectToJson(statusRequest, statusRequest.getClass())))
                 .andDo(print())
                 .andExpect(status().isBadRequest())

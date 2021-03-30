@@ -32,7 +32,7 @@ class AuthenticationServiceIT {
     }
 
     @Configuration
-    @ComponentScan(basePackageClasses = AuthenticationServiceImpl.class)
+    @ComponentScan(basePackageClasses = {AuthenticationServiceImpl.class,})
     static class config {
     }
 

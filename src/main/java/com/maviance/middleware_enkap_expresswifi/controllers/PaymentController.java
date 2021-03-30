@@ -5,6 +5,7 @@ import com.maviance.middleware_enkap_expresswifi.model.request.ExpressWifiStatus
 import com.maviance.middleware_enkap_expresswifi.model.response.RedirectResponse;
 import com.maviance.middleware_enkap_expresswifi.model.response.StatusResponse;
 import com.maviance.middleware_enkap_expresswifi.service.interfaces.PaymentService;
+import jdk.nashorn.internal.objects.annotations.Getter;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;

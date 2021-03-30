@@ -2,18 +2,21 @@ package com.maviance.middleware_enkap_expresswifi.config;
 
 import com.maviance.middleware_enkap_expresswifi.service.interfaces.AuthenticationService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
-import java.awt.*;
+import java.time.Duration;
 import java.util.Collections;
 
 @Configuration
 @Slf4j
 public class RestConfig {
+
 
     private final AuthenticationService authenticationService;
 
@@ -24,6 +27,9 @@ public class RestConfig {
     @Bean
     public RestTemplate restTemplate() {
         final RestTemplate restTemplate = new RestTemplate();
+        SimpleClientHttpRequestFactory requestFactory = (SimpleClientHttpRequestFactory) restTemplate.getRequestFactory();
+        requestFactory.setReadTimeout(7000);
+        requestFactory.setConnectTimeout(7000);
         restTemplate.getInterceptors().add((request, body, execution) -> {
             if (!request.getHeaders().containsKey("Authorization")) {//for all requests except Generating Token Request
                 request.getHeaders().put("Accept", Collections.singletonList(MediaType.APPLICATION_JSON_VALUE));

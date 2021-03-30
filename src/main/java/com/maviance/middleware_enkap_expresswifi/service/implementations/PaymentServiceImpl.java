@@ -9,16 +9,20 @@ import com.maviance.middleware_enkap_expresswifi.model.response.*;
 import com.maviance.middleware_enkap_expresswifi.service.interfaces.PaymentService;
 import com.maviance.middleware_enkap_expresswifi.utils.CryptoUtils;
 import com.maviance.middleware_enkap_expresswifi.utils.JsonMapper;
+import javafx.animation.Animation;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.NotReadablePropertyException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -30,7 +34,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Value("${enkap.order.url}")
     private String eNkapPlaceOrderUrl;
     @Value("${enkap.status.url}")
-    private String eNkapGetStatusUrl;
+    private String eNkapStatusUrl;
     @Value("${express.wifi.secret}")
     private String expressWifiSecret;
     @Value("${express.wifi.id}")
@@ -49,69 +53,74 @@ public class PaymentServiceImpl implements PaymentService {
     public RedirectResponse requestENkapPayment(ExpressWifiPaymentRequest expressWifiPaymentRequest) {
         verifyHmac(expressWifiPaymentRequest.getHmac(),expressWifiPaymentRequest.getTimestamp(),expressWifiId);
         ENkapOrderRequest eNkapOrderRequest = mapExpressWifiToEnkapRequest(expressWifiPaymentRequest);
-        log.debug("Sending Payment Request to Enkap");
-        ResponseEntity<String> responseEntity = restTemplate.postForEntity(eNkapPlaceOrderUrl, eNkapOrderRequest, String.class);
-        log.debug("Enkap Payment Response");
-        String jsonResponse = responseEntity.getBody();
 
-        if (responseEntity.getStatusCode() == HttpStatus.CREATED) {
-            log.info("Successful Enkap Payment Request");
-            ENkapOrderResponse eNkapOrderResponse = JsonMapper.jsonToObject(jsonResponse, ENkapOrderResponse.class);
+        try {
+            log.debug("Sending Payment Request to Enkap");
+            ENkapOrderResponse response = restTemplate.postForObject(eNkapPlaceOrderUrl, eNkapOrderRequest, ENkapOrderResponse.class);
             RedirectResponse redirectResponse = new RedirectResponse();
-            redirectResponse.setRedirectUrl(eNkapOrderResponse.getRedirectUrl());
             redirectResponse.setExpessWifiStatus(ExpessWifiStatus.SUCCESS);
-            log.debug("Sending Response to Express Wifi");
+            redirectResponse.setRedirectUrl(response.getRedirectUrl());
+            log.debug("Enkap Payment Response");
             return redirectResponse;
-        } else if (responseEntity.getStatusCode() == HttpStatus.NOT_FOUND) {
-            log.error("Invalid PaymentId from ExpressWifi");
-            ErrorResponse.ErrorObject errorObject = new ErrorResponse.ErrorObject("Incorrect PaymentId", "XWFApiException", 105, "AZ1BKlO7qIdTD7yyBUA_JwR");
-            ErrorResponse response = new ErrorResponse(errorObject);
-            response.setExpessWifiStatus(ExpessWifiStatus.FAILURE);
-            log.debug("Sending Error Response to Express Wifi");
-            throw new ExpressWifiException(response);
-        } else if (responseEntity.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-            log.error("Incorrect Enkap Access Token");
-            log.debug("Sending Error Response to Express Wifi");
-            throw getInternalError(jsonResponse);
-        }else{
-            log.error("Internal Error From Enkap");
-            log.debug("Sending Error Response to Express Wifi");
-            throw getInternalError(jsonResponse);
+        } catch (HttpClientErrorException exception) {
+            String jsonResponse = exception.getResponseBodyAsString();
+            if (exception.getStatusCode() == HttpStatus.NOT_FOUND) {
+                log.error("Invalid PaymentId from ExpressWifi");
+                ErrorResponse.ErrorObject errorObject = new ErrorResponse.ErrorObject("Incorrect PaymentId", "XWFApiException", 105, "AZ1BKlO7qIdTD7yyBUA_JwR");
+                ErrorResponse response = new ErrorResponse(errorObject);
+                response.setExpessWifiStatus(ExpessWifiStatus.FAILURE);
+                log.debug("Sending Error Response to Express Wifi");
+                throw new ExpressWifiException(response);
+            } else if (exception.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                log.error("Incorrect Enkap Access Token. Error message body from Enkap: {}", jsonResponse);
+                log.debug("Sending Error Response to Express Wifi");
+                throw getInternalError("Unable to precess Payment Request");
+            } else {
+                log.error("Unexpected Client Error. Error message body from Enkap: {}", jsonResponse);
+                log.debug("Sending Error Response to Express Wifi");
+                throw getInternalError("Unexpected Error");
+            }
+        } catch (HttpServerErrorException exception) {
+            log.error("Enkap Server Error occurred. Error Message Body: {}",exception.getResponseBodyAsString());
+            throw getInternalError("An Internal Error Occurred");
         }
     }
 
     @Override
     public StatusResponse requestStatusFromENkap(ExpressWifiStatusRequest expressWifiStatusRequest) {
         verifyHmac(expressWifiStatusRequest.getHmac(),expressWifiStatusRequest.getTimestamp(),expressWifiStatusRequest.getPartnerId());
-        log.debug("Sending Status Request to Enkap");
-        ResponseEntity<String> responseEntity = restTemplate.getForEntity(eNkapGetStatusUrl.concat("?orderMerchantId={merchantId}"), String.class, expressWifiStatusRequest.getPaymentId());
-        log.debug("Enkap Status Response");
-        String jsonBody = responseEntity.getBody();
-        ErrorResponse.ErrorObject errorObject;
-        ErrorResponse response;
-        switch (responseEntity.getStatusCode()) {
-            case OK:
-                log.info("Successfully retrieved Order Status from ENkap");
-                ENkapStatusResponse eNkapStatusResponse = JsonMapper.jsonToObject(jsonBody, ENkapStatusResponse.class);
-                return mapEnkapToExpressWifiStatusResponse(eNkapStatusResponse);
-            case NOT_FOUND:
-                log.error("Incorrect PaymentId from Express Wifi");
-                errorObject = new ErrorResponse.ErrorObject("Incorrect PaymentId", "XWFApiException",
-                        105, "AZ1BKlO7qIdTD7yyBUA_JwR");
-                response = new ErrorResponse(errorObject);
-                response.setExpessWifiStatus(ExpessWifiStatus.FAILURE);
-                log.debug("Sending Error Response to Express Wifi");
-                throw new ExpressWifiException(response);
-            case UNAUTHORIZED:
-                log.error("Incorrect Enkap Access Token");
-                log.error("Sending Error Response to Express Wifi");
-                throw getInternalError(jsonBody);
-            default:
-                log.error("Enkap Internal Error");
-                log.error("Sending Error Response to Express Wifi");
-                throw getInternalError(jsonBody);
+        try {
+            log.debug("Sending Status Request to Enkap");
+            ENkapStatusResponse enkapStatusResponse = restTemplate.getForObject(eNkapStatusUrl.concat("?orderMerchantId={merchantId}"), ENkapStatusResponse.class, expressWifiStatusRequest.getPaymentId());
+            log.info("Successfully retrieved Order Status from ENkap");
+            assert enkapStatusResponse != null;
+            return mapEnkapToExpressWifiStatusResponse(enkapStatusResponse);
+        } catch (HttpClientErrorException e) {
+            String jsonBody = e.getResponseBodyAsString();
+            ErrorResponse.ErrorObject errorObject;
+            ErrorResponse response;
+            switch (e.getStatusCode()) {
+                case NOT_FOUND:
+                    log.error("Incorrect PaymentId from Express Wifi");
+                    errorObject = new ErrorResponse.ErrorObject("Incorrect PaymentId", "XWFApiException",
+                            105, "AZ1BKlO7qIdTD7yyBUA_JwR");
+                    response = new ErrorResponse(errorObject);
+                    response.setExpessWifiStatus(ExpessWifiStatus.FAILURE);
+                    log.debug("Sending Error Response to Express Wifi");
+                    throw new ExpressWifiException(response);
+                case UNAUTHORIZED:
+                    log.error("Incorrect Enkap Access Token. Error message body from Enkap: {}", jsonBody);
+                    log.debug("Sending Error Response to Express Wifi");
+                    throw getInternalError("Unable to precess Payment Request");
+                default:
+                    log.error("Unexpected Client Error. Error message body from Enkap: {}", jsonBody);
+                    log.debug("Sending Error Response to Express Wifi");
+                    throw getInternalError("Unexpected Error");
+            }
+        } catch (HttpServerErrorException exception) {
+            log.error("Enkap Server Error occurred. Error Message Body: {}",exception.getResponseBodyAsString());
+            throw getInternalError("An Internal Error Occurred");
         }
-
     }
 
     private StatusResponse mapEnkapToExpressWifiStatusResponse(ENkapStatusResponse eNkapStatusResponse) {
@@ -176,28 +185,31 @@ public class PaymentServiceImpl implements PaymentService {
                 "\"notificationUrl\": \"\"," +
                 "\"returnUrl\":\""+redirectUrl+"\"" +
                 "}";
-        HttpEntity<String> request = new HttpEntity<>(jsonRequestBody);
-        log.debug("Sending Setup Redirect Url Request to ENkap");
-        ResponseEntity<String> responseEntity = restTemplate.exchange(eNkapSetupUrl, HttpMethod.PUT, request, String.class);
-        log.debug("Received Enkap Setup Redirect Url Response");
-        switch (responseEntity.getStatusCode()) {
-            case OK:
-                log.info("Successfully Set Enkap Return URL");
-                return;
-            case UNAUTHORIZED:
-                log.error("Invalid Access Token");
-                log.error("Sending Error Response to Express Wifi");
-                throw getInternalError(responseEntity.getBody());
-            default:
-                log.error("Enkap Internal Error");
-                log.error("Sending Error Response to Express Wifi");
-                throw getInternalError(responseEntity.getBody());
+        try {
+            HttpEntity<String> request = new HttpEntity<>(jsonRequestBody);
+            log.debug("Sending Setup Redirect Url Request to ENkap");
+            ResponseEntity<String> responseEntity = restTemplate.exchange(eNkapSetupUrl, HttpMethod.PUT, request, String.class);
+            log.info("Successfully Set Enkap Return URL");
+        } catch (HttpClientErrorException e) {
+            String jsonResponse = e.getResponseBodyAsString();
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                log.error("Incorrect Enkap Access Token. Error message body from Enkap: {}", jsonResponse);
+                log.debug("Sending Error Response to Express Wifi");
+                throw getInternalError("Unable to precess Payment Request");
+            }
+            log.error("Unexpected Client Error. Error message body from Enkap: {}", jsonResponse);
+            log.debug("Sending Error Response to Express Wifi");
+            throw getInternalError("Unexpected Error");
+        }catch (HttpServerErrorException exception) {
+            log.error("Enkap Server Error occurred. Error Message Body: {}",exception.getResponseBodyAsString());
+            throw getInternalError("An Internal Error Occurred");
         }
+
 
     }
 
     private ExpressWifiException getInternalError(String body) {
-        ErrorResponse.ErrorObject errorObject = new ErrorResponse.ErrorObject(body, "InternalException", 107, "ADWEDsda12sd_JwR");
+        ErrorResponse.ErrorObject errorObject = new ErrorResponse.ErrorObject(body, "InternalException", 500, "ADWEDsda12sd_JwR");
         ErrorResponse response = new ErrorResponse(errorObject);
         response.setExpessWifiStatus(ExpessWifiStatus.FAILURE);
         return new ExpressWifiException(response);
