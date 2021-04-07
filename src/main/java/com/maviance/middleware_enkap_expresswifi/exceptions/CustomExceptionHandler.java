@@ -28,18 +28,23 @@ public class CustomExceptionHandler {
         assert fieldError != null;
         String fieldName = fieldError.getField();
         ErrorResponse.ErrorObject errorObject;
-        if (fieldName.equals("hmac")) {
-            errorObject = new ErrorResponse.ErrorObject("The timestamp parameter is required",
-                    "MissingTimestampException", 101, "APnIyP3Av3DcI1zH5Vam-GL");
-        } else if (fieldName.equals("timestamp")) {
-            errorObject = new ErrorResponse.ErrorObject("The hmac parameter is required",
-                    "MissingHmacException", 100, "A1lgQj37a-Mp22Y3PgBu5dG");
-        } else if (fieldName.equals("paymentId")) {
-            errorObject = new ErrorResponse.ErrorObject("The payment ID parameter is required",
-                    "MissingHPaymentIdException", 102, "sdsdsasdgBu5dG");
-        } else {
-            errorObject = new ErrorResponse.ErrorObject(fieldError.getDefaultMessage(),
-                    "Invalid Method Argument", 106, "fbgenexception");
+        switch (fieldName) {
+            case "hmac":
+                errorObject = new ErrorResponse.ErrorObject("The timestamp parameter is required",
+                        "MissingTimestampException", 101, "APnIyP3Av3DcI1zH5Vam-GL");
+                break;
+            case "timestamp":
+                errorObject = new ErrorResponse.ErrorObject("The hmac parameter is required",
+                        "MissingHmacException", 100, "A1lgQj37a-Mp22Y3PgBu5dG");
+                break;
+            case "paymentId":
+                errorObject = new ErrorResponse.ErrorObject("The payment ID parameter is required",
+                        "MissingHPaymentIdException", 102, "sdsdsasdgBu5dG");
+                break;
+            default:
+                errorObject = new ErrorResponse.ErrorObject(fieldError.getDefaultMessage(),
+                        "Invalid Method Argument", 106, "fbgenexception");
+                break;
         }
         ErrorResponse response = new ErrorResponse(errorObject);
         response.setExpressWifiStatus(ExpressWifiStatus.FAILURE);

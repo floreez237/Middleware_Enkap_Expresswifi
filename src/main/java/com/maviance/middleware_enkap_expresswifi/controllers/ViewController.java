@@ -17,7 +17,7 @@ public class ViewController {
         this.requestRepository = requestRepository;
     }
 
-    //do not change this
+    //do not change this endpoint
     @GetMapping(value = {"/redirect/{paymentId}"})
     public String redirectToExpressWifi(@PathVariable String paymentId) {
         MiddleWareRequestEntity middleWareRequestEntity = requestRepository.findById(paymentId).orElse(null);

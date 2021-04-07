@@ -22,6 +22,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.UUID;
 
+/**
+ * This class is the Primary Implementation of the {@link PaymentService}
+ *
+ * @author Florian Lowe
+ */
 @Service
 @Slf4j
 public class PaymentServiceImpl implements PaymentService {
@@ -45,6 +50,14 @@ public class PaymentServiceImpl implements PaymentService {
         this.requestRepository = requestRepository;
     }
 
+    /**
+     * This Method is used to request a Payment from E-Nkap. The {@link ENkapOrderResponse Enkap response}
+     * sent back from E-Nkap is then reformatted into a {@link RedirectResponse Redirect Response} that is returned.
+     *
+     * @param expressWifiPaymentRequest This object contains all the required attributes from Express Wifi's Payment Request.
+     * @return RedirectResponse
+     * @throws ExpressWifiException This Exception is thrown when any error occurs.
+     */
     @Override
     public RedirectResponse requestENkapPayment(ExpressWifiPaymentRequest expressWifiPaymentRequest) {
         verifyHmac(expressWifiPaymentRequest.getHmac(), expressWifiPaymentRequest.getTimestamp(), expressWifiId);
@@ -53,6 +66,7 @@ public class PaymentServiceImpl implements PaymentService {
         middleWareRequestEntity.configureWithEWPaymentRequest(expressWifiPaymentRequest);
         log.info("Saving Request to DB...");
         requestRepository.save(middleWareRequestEntity);
+        //The Express Wifi Request is mapped into an Enkap Order Request.
         ENkapOrderRequest eNkapOrderRequest = mapExpressWifiToEnkapRequest(expressWifiPaymentRequest);
         try {
             log.debug("Sending Payment Request to Enkap");
@@ -93,9 +107,18 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
+
+    /**
+     * This Method is used to request a Transaction Status from E-Nkap. The {@link ENkapStatusResponse Enkap Status response}
+     * sent back from E-Nkap is then reformatted into a {@link StatusResponse Express Wifi Status Response} that is returned.
+     *
+     * @param expressWifiStatusRequest This object contains all the required attributes from Express Wifi's Status Request.
+     * @return StatusResponse
+     * @throws ExpressWifiException This Exception is thrown when any error occurs.
+     */
     @Override
     public StatusResponse requestStatusFromENkap(ExpressWifiStatusRequest expressWifiStatusRequest) {
-        verifyHmac(expressWifiStatusRequest.getHmac(),expressWifiStatusRequest.getTimestamp(),expressWifiStatusRequest.getPartnerId());
+        verifyHmac(expressWifiStatusRequest.getHmac(), expressWifiStatusRequest.getTimestamp(), expressWifiStatusRequest.getPartnerId());
 
         try {
             log.debug("Sending Status Request to Enkap");
@@ -177,7 +200,6 @@ public class PaymentServiceImpl implements PaymentService {
         log.debug("Mapped Express Wifi Request to Enkap Request");
         return eNkapOrderRequest;
     }
-
 
 
     private void verifyHmac(String hmacToCheck,long timestamp,String expressWifiPartnerId) {

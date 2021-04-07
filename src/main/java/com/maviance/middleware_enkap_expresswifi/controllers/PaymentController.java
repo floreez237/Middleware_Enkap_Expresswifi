@@ -12,9 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 
-/**
- * @author Florian Lowe
- */
+
 @RestController
 @RequestMapping("/v1")
 public class PaymentController {

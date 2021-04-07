@@ -13,6 +13,11 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+/**
+ * This class provides methods to help in the authentication of a request.
+ *
+ * @author Florian Lowe
+ */
 @Service
 @Slf4j
 public class AuthenticationServiceImpl implements AuthenticationService {
@@ -31,11 +36,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         });
     }
 
+    /**
+     * This method is used to generate a token. This is token is to be used for authentication of request at the
+     * level of E-Nkap.
+     *
+     * @return java.lang.String
+     */
     @Override
     public String generateToken() {
+        //creating the authorization string
         String authorization = "Basic ".concat(generationToken);
         MultiValueMap<String, String> multiValueMap = new LinkedMultiValueMap<>();
-        multiValueMap.add("grant_type","client_credentials");
+        multiValueMap.add("grant_type", "client_credentials");
         RequestEntity<MultiValueMap<String, String>> requestEntity = RequestEntity.post("https://api.enkap.cm/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .accept(MediaType.APPLICATION_JSON)
