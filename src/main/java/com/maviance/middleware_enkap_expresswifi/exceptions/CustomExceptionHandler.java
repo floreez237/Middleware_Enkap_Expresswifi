@@ -3,6 +3,7 @@ package com.maviance.middleware_enkap_expresswifi.exceptions;
 
 import com.maviance.middleware_enkap_expresswifi.enums.ExpressWifiStatus;
 import com.maviance.middleware_enkap_expresswifi.model.response.ErrorResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ControllerAdvice
 @ResponseBody
+@Slf4j
 public class CustomExceptionHandler {
     @ExceptionHandler(ExpressWifiException.class)
     public ErrorResponse handleExpressWifiException(ExpressWifiException exception) {
@@ -44,7 +46,7 @@ public class CustomExceptionHandler {
         return response;
     }
 
-    @ExceptionHandler(ParameterNotFoundException.class)
+    @ExceptionHandler(PaymentIdNotFoundException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public String handleParameterNotFound() {
         return "An Error has occurred";
@@ -53,7 +55,8 @@ public class CustomExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus
     public ErrorResponse handleUnpredictedException(Exception exception) {
-        ErrorResponse.ErrorObject errorObject = new ErrorResponse.ErrorObject(exception.getMessage(), "Internal Server Error", 500, "fbunpredicted");
+        log.error(exception.getMessage());
+        ErrorResponse.ErrorObject errorObject = new ErrorResponse.ErrorObject("An Internal Error has occurred", "Internal Server Error", 500, "fbunpredicted");
         ErrorResponse response = new ErrorResponse(errorObject);
         response.setExpressWifiStatus(ExpressWifiStatus.FAILURE);
         return response;

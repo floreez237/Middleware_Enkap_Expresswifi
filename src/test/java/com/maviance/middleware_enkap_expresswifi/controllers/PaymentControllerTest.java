@@ -4,6 +4,7 @@ import com.maviance.middleware_enkap_expresswifi.enums.RequestSource;
 import com.maviance.middleware_enkap_expresswifi.model.request.ExpressWifiPaymentRequest;
 import com.maviance.middleware_enkap_expresswifi.model.request.ExpressWifiStatusRequest;
 import com.maviance.middleware_enkap_expresswifi.model.response.RedirectResponse;
+import com.maviance.middleware_enkap_expresswifi.repositories.RequestRepository;
 import com.maviance.middleware_enkap_expresswifi.service.interfaces.PaymentService;
 import com.maviance.middleware_enkap_expresswifi.utils.JsonMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -16,9 +17,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
-
-import java.util.regex.Matcher;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -33,6 +31,9 @@ class PaymentControllerTest {
 
     @MockBean
     PaymentService paymentService;
+
+    @MockBean
+    RequestRepository requestRepository;
 
     @Test
     @DisplayName("Test Invalid Payment Request Body")

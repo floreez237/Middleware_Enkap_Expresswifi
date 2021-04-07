@@ -87,12 +87,6 @@ class PaymentServiceTest {
     void requestENkapPaymentSuccessFul() {
         ENkapOrderResponse eNkapOrderResponse = new ENkapOrderResponse("PTN1", "payment1", "https://www.enkap.com");
 
-        //mock set up url request
-        mockRestServiceServer.expect(ExpectedCount.once(), request -> {
-            assertEquals(enkapSetupUrl, request.getURI().toString());
-            assertEquals(HttpMethod.PUT, request.getMethod());
-        }).andRespond(withSuccess());
-
         //mock enkap order request
         mockRestServiceServer.expect(ExpectedCount.once(), request -> {
             assertEquals(enkapOrderUrl, request.getURI().toString());
@@ -112,12 +106,6 @@ class PaymentServiceTest {
     @DisplayName("Test Enkap Payment Request Payment Id Not Found")
     void requestENkapPaymentPaymentIdNotFound() {
 
-        //mock set up url request
-        mockRestServiceServer.expect(ExpectedCount.once(), request -> {
-            assertEquals(enkapSetupUrl, request.getURI().toString());
-            assertEquals(HttpMethod.PUT, request.getMethod());
-        }).andRespond(withSuccess());
-
         //mock enkap order request
         mockRestServiceServer.expect(ExpectedCount.once(), request -> {
             assertEquals(enkapOrderUrl, request.getURI().toString());
@@ -135,11 +123,7 @@ class PaymentServiceTest {
     @Test
     @DisplayName("Test Enkap Payment Request Payment Id Unauthorized")
     void requestENkapPaymentPaymentIdUnauthorized() {
-        //mock set up url request
-        mockRestServiceServer.expect(ExpectedCount.once(), request -> {
-            assertEquals(enkapSetupUrl, request.getURI().toString());
-            assertEquals(HttpMethod.PUT, request.getMethod());
-        }).andRespond(withSuccess());
+
 
         //mock enkap order request
         mockRestServiceServer.expect(ExpectedCount.once(), request -> {
@@ -156,12 +140,6 @@ class PaymentServiceTest {
 
     @Test
     void testEnkapPaymentUnexpectedClientError() {
-        //mock set up url request
-        mockRestServiceServer.expect(ExpectedCount.once(), request -> {
-            assertEquals(enkapSetupUrl, request.getURI().toString());
-            assertEquals(HttpMethod.PUT, request.getMethod());
-        }).andRespond(withSuccess());
-
         //mock enkap order request
         mockRestServiceServer.expect(ExpectedCount.once(), request -> {
             assertEquals(enkapOrderUrl, request.getURI().toString());

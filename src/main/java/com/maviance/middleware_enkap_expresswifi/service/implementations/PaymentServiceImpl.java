@@ -12,10 +12,7 @@ import com.maviance.middleware_enkap_expresswifi.service.interfaces.PaymentServi
 import com.maviance.middleware_enkap_expresswifi.utils.CryptoUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -157,8 +154,6 @@ public class PaymentServiceImpl implements PaymentService {
             default:
                 expressWifiStatus = ExpressWifiStatus.PENDING;
         }
-        log.error("Invalid Status from ENkap");
-        log.debug("Sending Error Response to Express Wifi");
         return new StatusResponse(expressWifiStatus);
     }
 
@@ -168,8 +163,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .withItemList(new ArrayList<>()).withMerchantReference(expressWifiPaymentRequest.getPaymentId())
                 .withOrderDate(Instant.now().toString()).withPhoneNumber(expressWifiPaymentRequest.getPhoneNumber())
                 .withReceiptUrl(expressWifiPaymentRequest.getCallbackUrl()).withDescription("Data");
-        //to set return url in enkap system
-        setRedirectUrl(expressWifiPaymentRequest.getCallbackUrl());
+        /*//to set return url in enkap system
+        setRedirectUrl(expressWifiPaymentRequest.getCallbackUrl());*/
         ENkapOrderRequest.Item item = new ENkapOrderRequest.Item().withItemId(expressWifiPaymentRequest.getPaymentId())
                 .withParticulars("Data Pack").withQuantity(1).withUnitCost(expressWifiPaymentRequest.getAmount());
         item.calculateSubtotal();
@@ -197,34 +192,6 @@ public class PaymentServiceImpl implements PaymentService {
             log.debug("Sending Error Response to Express Wifi");
             throw new ExpressWifiException(errorResponse);
         }
-    }
-
-    private void setRedirectUrl(String redirectUrl) {
-        String jsonRequestBody = "{" +
-                "\"notificationUrl\": \"\"," +
-                "\"returnUrl\":\""+redirectUrl+"\"" +
-                "}";
-        try {
-            HttpEntity<String> request = new HttpEntity<>(jsonRequestBody);
-            log.debug("Sending Setup Redirect Url Request to ENkap");
-            ResponseEntity<String> responseEntity = restTemplate.exchange(eNkapSetupUrl, HttpMethod.PUT, request, String.class);
-            log.info("Successfully Set Enkap Return URL");
-        } catch (HttpClientErrorException e) {
-            String jsonResponse = e.getResponseBodyAsString();
-            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-                log.error("Incorrect Enkap Access Token. Error message body from Enkap: {}", jsonResponse);
-                log.debug("Sending Error Response to Express Wifi");
-                throw getInternalError("Unable to precess Payment Request");
-            }
-            log.error("Unexpected Client Error. Error message body from Enkap: {}", jsonResponse);
-            log.debug("Sending Error Response to Express Wifi");
-            throw getInternalError("Unexpected Error");
-        }catch (HttpServerErrorException exception) {
-            log.error("Enkap Server Error occurred. Error Message Body: {}",exception.getResponseBodyAsString());
-            throw getInternalError("An Internal Error Occurred");
-        }
-
-
     }
 
     private ExpressWifiException getInternalError(String body) {
